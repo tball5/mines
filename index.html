@@ -182,7 +182,18 @@
   }
 
   /* LEADERBOARD */
-  #lb-list { display:flex; flex-direction:column; gap:5px; }
+  #lb-list {
+    display:flex; flex-direction:column; gap:5px;
+    max-height: 220px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+  }
+  #lb-list::-webkit-scrollbar { width: 3px; }
+  #lb-list::-webkit-scrollbar-track { background: transparent; }
+  #lb-list::-webkit-scrollbar-thumb { background: #005533; border-radius: 2px; }
+  #lb-list::-webkit-scrollbar-thumb:hover { background: var(--green-dim); }
+  #lb-list { scrollbar-width: thin; scrollbar-color: #005533 transparent; }
   .lb-row {
     display:flex; align-items:center; gap:8px;
     padding:7px 10px; border:1px solid var(--green-dark); font-size:11px;
@@ -192,12 +203,14 @@
   .lb-row.r3 { border-color:#cd7f32; }
   .lb-row.r4 { border-color:#446644; }
   .lb-row.r5 { border-color:#446644; }
+  .lb-row.r6,.lb-row.r7,.lb-row.r8,.lb-row.r9,.lb-row.r10 { border-color:#223322; }
   .lb-rank { font-family:'Press Start 2P',monospace; font-size:7px; width:20px; flex-shrink:0; }
   .r1 .lb-rank { color:var(--yellow); text-shadow:0 0 6px var(--yellow); }
   .r2 .lb-rank { color:#aaa; }
   .r3 .lb-rank { color:#cd7f32; }
   .r4 .lb-rank { color:#00aa55; }
   .r5 .lb-rank { color:#00aa55; }
+  .r6 .lb-rank,.r7 .lb-rank,.r8 .lb-rank,.r9 .lb-rank,.r10 .lb-rank { color:#336633; }
   .lb-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .lb-score { font-family:'Press Start 2P',monospace; font-size:8px; color:var(--green); flex-shrink:0; text-align:right; line-height:1.6; }
   .lb-empty { color:var(--green-dim); font-size:10px; text-align:center; padding:10px 0; }
@@ -272,7 +285,7 @@
 
   <!-- Leaderboard — TOP -->
   <div class="panel">
-    <div class="panel-title">▸ TOP 5 — HIGHEST ROUND REACHED</div>
+    <div class="panel-title">▸ TOP 10 — HIGHEST ROUND REACHED</div>
     <div id="lb-list"><div class="lb-empty">Loading...</div></div>
   </div>
 
@@ -587,11 +600,11 @@ async function checkLeaderboard(roundReached){
     return;
   }
 
-  const board = await loadBoard(); // array of up to 5 entries sorted desc
-  const qualifies = board.length < 5 || roundReached >= board[4].bestRound;
+  const board = await loadBoard(); // array of up to 10 entries sorted desc
+  const qualifies = board.length < 10 || roundReached >= board[9].bestRound;
 
   if(qualifies){
-    const title = roundReached === 9 ? '★ MATRIX CRACKED ★' : `🏆 TOP 5 — ROUND ${roundReached}`;
+    const title = roundReached === 9 ? '★ MATRIX CRACKED ★' : `🏆 TOP 10 — ROUND ${roundReached}`;
     const body  = roundReached === 9
       ? 'All 9 rounds cleared!<br>You cracked the top 5 — enter your name:'
       : `Round ${roundReached} reached!<br>You cracked the top 5 — enter your name:`;
@@ -646,8 +659,8 @@ async function saveScore(name, roundReached, currentBoard){
     // Re-fetch and trim to top 5, deleting any excess
     const all = await loadBoard();
     // all is sorted desc; keep first 5, delete the rest
-    if(all.length > 5){
-      const toDelete = all.slice(5);
+    if(all.length > 10){
+      const toDelete = all.slice(10);
       for(const entry of toDelete){
         await set(ref(db,`leaderboard/${entry._key}`), null);
       }
@@ -662,8 +675,8 @@ function renderLB(data){
   const arr = Object.entries(data)
     .map(([k,v]) => ({...v, _key:k}))
     .sort((a,b) => b.bestRound !== a.bestRound ? b.bestRound - a.bestRound : b.ts - a.ts)
-    .slice(0,5);
-  const cls=['r1','r2','r3','r4','r5'], medals=['#1','#2','#3','#4','#5'];
+    .slice(0,10);
+  const cls=['r1','r2','r3','r4','r5','r6','r7','r8','r9','r10'], medals=['#1','#2','#3','#4','#5','#6','#7','#8','#9','#10'];
   lbList.innerHTML='';
   arr.forEach((e,i)=>{
     const isMax = e.bestRound === 9;
