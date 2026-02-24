@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MINEFIELD // MATRIX</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --green: #00ff88;
+    --green-dim: #00aa55;
+    --green-dark: #003322;
+    --red: #ff2244;
+    --yellow: #ffee00;
+    --bg: #0a0a0a;
+    --panel-bg: rgba(0, 10, 5, 0.93);
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--green);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+    padding-bottom: 40px;
+  }
+
+  #rain-canvas {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+  }
+
+  #app {
+    position: relative; z-index: 10;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 14px;
+    padding: 16px 12px;
+    width: 100%; max-width: 520px;
+  }
+
+  /* HEADER */
+  #title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(13px, 4vw, 22px);
+    color: var(--green);
+    text-shadow: 0 0 10px var(--green), 0 0 30px var(--green-dim);
+    letter-spacing: 4px; text-align: center;
+    animation: flicker 5s infinite;
+  }
+  #subtitle { font-size: 10px; color: var(--green-dim); margin-top: 5px; letter-spacing: 3px; text-align: center; }
+  @keyframes flicker {
+    0%,94%,96%,100%{opacity:1} 95%{opacity:0.5} 97%{opacity:0.3}
+  }
+
+  /* PANEL */
+  .panel {
+    background: var(--panel-bg);
+    border: 2px solid var(--green-dim);
+    box-shadow: 0 0 18px rgba(0,255,136,0.12), inset 0 0 16px rgba(0,255,136,0.03);
+    padding: 12px 14px; width: 100%;
+  }
+  .panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 7px; color: var(--green-dim);
+    letter-spacing: 2px; margin-bottom: 8px;
+    border-bottom: 1px solid var(--green-dark); padding-bottom: 5px;
+  }
+
+  /* STATUS */
+  #status-bar { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
+  .stat-label { font-size: 8px; color: var(--green-dim); letter-spacing: 1px; margin-bottom: 3px; }
+  .stat-value {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(8px, 2.2vw, 12px);
+    color: var(--green); text-shadow: 0 0 6px var(--green);
+  }
+
+  /* PROGRESS */
+  #progress-row { display: flex; gap: 5px; align-items: center; justify-content: center; }
+  .prog-dot {
+    width: 12px; height: 12px;
+    border: 2px solid var(--green-dim);
+    background: transparent; flex-shrink: 0; transition: all 0.25s;
+  }
+  .prog-dot.won   { background: var(--green); box-shadow: 0 0 7px var(--green); border-color: var(--green); }
+  .prog-dot.current { border-color: var(--yellow); box-shadow: 0 0 7px var(--yellow); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* MINE COUNT INFO */
+  #mine-info-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; color: var(--green-dim); gap: 6px; flex-wrap: wrap;
+  }
+  #mine-count-display {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px; color: var(--red);
+    text-shadow: 0 0 8px rgba(255,34,68,0.5);
+  }
+  #safe-count-display {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px; color: var(--green);
+  }
+
+  /* SEED / FAIRNESS */
+  #seed-bar { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start; }
+  #seed-val { font-family: 'Orbitron', monospace; font-size: 7px; color: var(--green); word-break: break-all; line-height: 1.6; }
+  .seed-hint { font-size: 8px; color: var(--green-dark); margin-top: 6px; line-height: 1.7; }
+  #reveal-status {
+    font-family: 'Orbitron', monospace; font-size: 7px;
+    padding: 4px 8px; border: 1px solid var(--green-dark);
+    color: var(--green-dim); text-align: center; white-space: nowrap;
+  }
+  #reveal-status.live { color: var(--yellow); border-color: var(--yellow); box-shadow: 0 0 6px rgba(255,238,0,0.2); }
+  #reveal-status.done-safe { color: var(--green); border-color: var(--green); }
+  #reveal-status.done-boom { color: var(--red); border-color: var(--red); box-shadow: 0 0 6px rgba(255,34,68,0.3); }
+
+  /* MESSAGE */
+  #message-bar {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(7px, 2vw, 10px);
+    color: var(--yellow); text-shadow: 0 0 8px var(--yellow);
+    text-align: center; min-height: 22px;
+    letter-spacing: 1px; line-height: 1.7;
+  }
+
+  /* BOARD */
+  #board-wrap { display: flex; justify-content: center; align-items: flex-start; width: 100%; }
+  #board { display: grid; gap: 2px; }
+
+  .cell {
+    background: linear-gradient(135deg, #0a2a1a, #051510);
+    border: 1px solid #005533;
+    cursor: pointer; position: relative;
+    transition: background 0.07s, border-color 0.07s, box-shadow 0.07s;
+  }
+  .cell::after {
+    content:''; position:absolute; top:2px; left:2px;
+    width:35%; height:35%;
+    background:rgba(0,255,136,0.07); pointer-events:none;
+  }
+  .cell:hover {
+    background: linear-gradient(135deg, #0e3d24, #082015);
+    border-color: var(--green);
+    box-shadow: 0 0 7px rgba(0,255,136,0.5); z-index:2;
+  }
+  .cell:hover::after { background: rgba(0,255,136,0.14); }
+  .cell.safe {
+    background: #000d07; border-color: #001a0a;
+    cursor: default; animation: openCell 0.18s ease-out;
+  }
+  .cell.boom {
+    background: linear-gradient(135deg, #3a0010, #1a0008);
+    border-color: var(--red); box-shadow: 0 0 16px var(--red);
+    cursor: default; animation: explode 0.35s ease-out;
+  }
+  .cell.show-mine {
+    background: linear-gradient(135deg, #1a000a, #0d0005);
+    border-color: #660022; cursor: default;
+  }
+  @keyframes openCell { 0%{transform:scale(0.5);opacity:0.3} 100%{transform:scale(1);opacity:1} }
+  @keyframes explode  { 0%{transform:scale(1)} 35%{transform:scale(1.5)} 100%{transform:scale(1)} }
+
+  .cell-icon {
+    width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    font-size: min(3.5vw, 14px); line-height:1;
+  }
+
+  /* LEADERBOARD */
+  #lb-list { display:flex; flex-direction:column; gap:5px; }
+  .lb-row {
+    display:flex; align-items:center; gap:8px;
+    padding:7px 10px; border:1px solid var(--green-dark); font-size:11px;
+  }
+  .lb-row.r1 { border-color:var(--yellow); }
+  .lb-row.r2 { border-color:#aaa; }
+  .lb-row.r3 { border-color:#cd7f32; }
+  .lb-row.r4 { border-color:#446644; }
+  .lb-row.r5 { border-color:#446644; }
+  .lb-rank { font-family:'Press Start 2P',monospace; font-size:7px; width:20px; flex-shrink:0; }
+  .r1 .lb-rank { color:var(--yellow); text-shadow:0 0 6px var(--yellow); }
+  .r2 .lb-rank { color:#aaa; }
+  .r3 .lb-rank { color:#cd7f32; }
+  .r4 .lb-rank { color:#00aa55; }
+  .r5 .lb-rank { color:#00aa55; }
+  .lb-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-score { font-family:'Press Start 2P',monospace; font-size:8px; color:var(--green); flex-shrink:0; text-align:right; line-height:1.6; }
+  .lb-empty { color:var(--green-dim); font-size:10px; text-align:center; padding:10px 0; }
+
+  /* OVERLAY */
+  #overlay {
+    position:fixed; inset:0; z-index:50;
+    background:rgba(0,0,0,0.88);
+    display:flex; align-items:center; justify-content:center;
+    backdrop-filter:blur(3px);
+  }
+  #overlay.hidden { display:none; }
+
+  .modal {
+    background:var(--panel-bg);
+    border:3px solid var(--green);
+    box-shadow:0 0 40px rgba(0,255,136,0.22);
+    padding:28px; max-width:400px; width:90%; text-align:center;
+  }
+  .modal.danger { border-color:var(--red);    box-shadow:0 0 40px rgba(255,34,68,0.22); }
+  .modal.gold   { border-color:var(--yellow); box-shadow:0 0 40px rgba(255,238,0,0.18); }
+
+  .modal-title {
+    font-family:'Press Start 2P',monospace;
+    font-size:clamp(11px,3.5vw,17px);
+    margin-bottom:14px; line-height:1.6;
+  }
+  .modal-title.green  { color:var(--green);  text-shadow:0 0 12px var(--green); }
+  .modal-title.red    { color:var(--red);    text-shadow:0 0 12px var(--red); }
+  .modal-title.yellow { color:var(--yellow); text-shadow:0 0 12px var(--yellow); }
+  .modal-body { font-size:11px; color:var(--green-dim); margin-bottom:18px; line-height:1.9; }
+
+  #name-input {
+    background:transparent; border:2px solid var(--green);
+    color:var(--green); font-family:'Press Start 2P',monospace;
+    font-size:11px; padding:10px 12px;
+    width:100%; margin-bottom:14px;
+    letter-spacing:2px; outline:none; text-transform:uppercase;
+    box-shadow:0 0 10px rgba(0,255,136,0.12);
+  }
+  #name-input::placeholder { color:var(--green-dark); }
+  #name-input:focus { box-shadow:0 0 18px rgba(0,255,136,0.32); }
+
+  .btn {
+    font-family:'Press Start 2P',monospace; font-size:9px; padding:11px 20px;
+    border:2px solid var(--green); background:transparent; color:var(--green);
+    cursor:pointer; letter-spacing:2px; transition:all 0.12s; text-transform:uppercase;
+  }
+  .btn:hover { background:var(--green); color:var(--bg); box-shadow:0 0 18px var(--green); }
+  .btn.danger { border-color:var(--red); color:var(--red); }
+  .btn.danger:hover { background:var(--red); color:var(--bg); }
+  .btn.gold { border-color:var(--yellow); color:var(--yellow); }
+  .btn.gold:hover { background:var(--yellow); color:var(--bg); }
+  .btn-row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+
+  body::after {
+    content:''; position:fixed; inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.025) 2px,rgba(0,0,0,0.025) 4px);
+    pointer-events:none; z-index:5;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="rain-canvas"></canvas>
+
+<div id="app">
+  <div>
+    <div id="title">▓ MINEFIELD ▓</div>
+    <div id="subtitle">// MATRIX PROTOCOL //</div>
+  </div>
+
+  <!-- Leaderboard — TOP -->
+  <div class="panel">
+    <div class="panel-title">▸ TOP 5 — HIGHEST ROUND REACHED</div>
+    <div id="lb-list"><div class="lb-empty">Loading...</div></div>
+  </div>
+
+  <!-- Status -->
+  <div class="panel">
+    <div class="panel-title">▸ MISSION STATUS</div>
+    <div id="status-bar">
+      <div>
+        <div class="stat-label">ROUND</div>
+        <div class="stat-value" id="round-display">1/9</div>
+      </div>
+      <div>
+        <div class="stat-label">GRID</div>
+        <div class="stat-value" id="grid-display">16×32</div>
+      </div>
+      <div>
+        <div class="stat-label">💣 MINES</div>
+        <div class="stat-value" id="mine-count-display" style="color:var(--red)">—</div>
+      </div>
+      <div>
+        <div class="stat-label">✓ SAFE</div>
+        <div class="stat-value" id="safe-count-display">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="panel" style="padding:10px 14px">
+    <div class="panel-title">▸ PROGRESS  [ ■ CLEARED  □ PENDING ]</div>
+    <div id="progress-row"></div>
+  </div>
+
+  <!-- Message -->
+  <div id="message-bar">CLICK ANY CELL TO BEGIN</div>
+
+  <!-- Board -->
+  <div class="panel" style="padding:8px">
+    <div id="board-wrap"><div id="board"></div></div>
+  </div>
+
+  <!-- Fairness/Seed — BOTTOM -->
+  <div class="panel" style="padding:10px 14px">
+    <div class="panel-title">▸ FAIRNESS PROOF — SEED SET BEFORE YOU CLICK</div>
+    <div id="seed-bar">
+      <div>
+        <div class="stat-label">ROUND SEED</div>
+        <div id="seed-val">—</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+        <div class="stat-label" style="text-align:right">STATUS</div>
+        <div id="reveal-status">ACTIVE</div>
+      </div>
+    </div>
+    <div class="seed-hint">Mines are placed using the seed before you click. After your pick, all mines are revealed so you can verify the result was never changed.</div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="overlay">
+  <div class="modal" id="modal">
+    <div class="modal-title green" id="modal-title">INITIALIZING</div>
+    <div class="modal-body"  id="modal-body">Connecting to matrix...</div>
+    <input type="text" id="name-input" placeholder="ENTER YOUR NAME" maxlength="16" autocomplete="off" style="display:none">
+    <div class="btn-row" id="modal-btns"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp }   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, signInAnonymously, onAuthStateChanged }
+                            from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getDatabase, ref, get, set, onValue }
+                            from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+// ══════════════════════════════════════════════════
+//  🔧 REPLACE WITH YOUR FIREBASE CONFIG
+//  console.firebase.google.com → Project Settings
+//  Enable: Authentication > Anonymous
+//          Realtime Database (test mode)
+// ══════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey:            "AIzaSyCUCv3qfDIpzbDXOnWAEcxdV76cGQtal0M",
+  authDomain:        "mines-b9a02.firebaseapp.com",
+  databaseURL:       "https://mines-b9a02-default-rtdb.firebaseio.com",
+  projectId:         "mines-b9a02",
+  storageBucket:     "mines-b9a02.firebasestorage.app",
+  messagingSenderId: "899956463155",
+  appId:             "1:899956463155:web:93f2dfab7ad12ef3003546"
+};
+
+// ── MATRIX RAIN ──────────────────────────────────
+const rc = document.getElementById('rain-canvas');
+const rctx = rc.getContext('2d');
+rc.width = window.innerWidth; rc.height = window.innerHeight;
+const CH = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()_+-=[]{}|;:\'",.<>?/～！@#￥%……&*（）——+【】｛｝；：＂＇，。、《》？';
+let rcols = rc.width/14, rdrop = Array(Math.floor(rcols)).fill(1);
+function drawRain(){
+  rctx.fillStyle='rgba(10,10,10,0.08)'; rctx.fillRect(0,0,rc.width,rc.height);
+  rctx.fillStyle='#00ff88'; rctx.font='14px monospace';
+  for(let i=0;i<rdrop.length;i++){
+    rctx.fillText(CH[Math.floor(Math.random()*CH.length)],i*14,rdrop[i]*14);
+    if(rdrop[i]*14>rc.height&&Math.random()>0.975)rdrop[i]=0; rdrop[i]++;
+  }
+}
+drawRain(); setInterval(drawRain,45);
+window.addEventListener('resize',()=>{
+  rc.width=window.innerWidth; rc.height=window.innerHeight;
+  rcols=rc.width/14; rdrop=Array(Math.floor(rcols)).fill(1);
+});
+
+// ── ROUND DEFINITIONS ────────────────────────────
+// [cols, rows]
+const ROUNDS = [
+  [16, 32],  // 512 cells  round 1  — VERTICAL portrait
+  [16, 16],  // 256 cells  round 2
+  [16,  8],  // 128 cells  round 3
+  [ 8,  8],  //  64 cells  round 4
+  [ 8,  4],  //  32 cells  round 5
+  [ 4,  4],  //  16 cells  round 6
+  [ 4,  2],  //   8 cells  round 7
+  [ 2,  2],  //   4 cells  round 8
+  [ 2,  1],  //   2 cells  round 9  FINAL
+];
+
+// ── STATE ────────────────────────────────────────
+let round    = 0;
+let active   = false;
+let mines    = [];    // Set of mine indices for this round
+let seed     = '';
+let demoMode = false;
+let db       = null;
+
+// ── DOM ──────────────────────────────────────────
+const boardEl     = document.getElementById('board');
+const roundDisp   = document.getElementById('round-display');
+const gridDisp    = document.getElementById('grid-display');
+const mineCountEl = document.getElementById('mine-count-display');
+const safeCountEl = document.getElementById('safe-count-display');
+const msgBar      = document.getElementById('message-bar');
+const progRow     = document.getElementById('progress-row');
+const seedValEl   = document.getElementById('seed-val');
+const revealStat  = document.getElementById('reveal-status');
+const overlay     = document.getElementById('overlay');
+const modal       = document.getElementById('modal');
+const modalTitle  = document.getElementById('modal-title');
+const modalBody   = document.getElementById('modal-body');
+const modalBtns   = document.getElementById('modal-btns');
+const nameInput   = document.getElementById('name-input');
+const lbList      = document.getElementById('lb-list');
+
+// ── MODAL ────────────────────────────────────────
+function showModal(title, body, tCls, btns, variant=''){
+  modal.className='modal'+(variant?' '+variant:'');
+  modalTitle.className='modal-title '+tCls;
+  modalTitle.textContent=title;
+  modalBody.innerHTML=body;
+  nameInput.style.display='none'; nameInput.value='';
+  modalBtns.innerHTML='';
+  btns.forEach(b=>{
+    const el=document.createElement('button');
+    el.className='btn'+(b.cls?' '+b.cls:'');
+    el.textContent=b.label; el.onclick=b.fn;
+    modalBtns.appendChild(el);
+  });
+  overlay.classList.remove('hidden');
+}
+function hideModal(){ overlay.classList.add('hidden'); }
+
+// ── PROGRESS ─────────────────────────────────────
+function renderProgress(){
+  progRow.innerHTML='';
+  for(let i=0;i<9;i++){
+    const d=document.createElement('div');
+    d.className='prog-dot'+(i<round?' won':i===round?' current':'');
+    progRow.appendChild(d);
+  }
+}
+
+// ── SEED ─────────────────────────────────────────
+function makeSeed(){
+  return Date.now().toString(36).toUpperCase()+'-'+Math.random().toString(36).substring(2,8).toUpperCase();
+}
+
+// ── BUILD BOARD ──────────────────────────────────
+function buildBoard(r){
+  const [cols, rows] = ROUNDS[r];
+  const total = cols * rows;
+
+  // ── MINE PLACEMENT ──
+  // Exactly 50% of cells are mines, placed in random positions.
+  // For odd totals (e.g. round 9 has 2 cells) we floor to get exactly 1 mine.
+  seed = makeSeed();
+  const mineTotal = Math.floor(total / 2); // always exactly half
+  // Fisher-Yates shuffle of indices, take first mineTotal as mine positions
+  const indices = Array.from({length: total}, (_, i) => i);
+  for(let i = total - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  mines = new Set(indices.slice(0, mineTotal));
+
+  const mineCount = mines.size;
+  const safeCount = total - mineCount;
+
+  // Update UI
+  seedValEl.textContent = seed;
+  revealStat.className = 'live';
+  revealStat.textContent = 'LIVE';
+  mineCountEl.textContent = mineCount;
+  safeCountEl.textContent = safeCount;
+
+  // Responsive cell sizing
+  const panelW = Math.min(window.innerWidth - 40, 496);
+  const cellPx = Math.max(13, Math.floor((panelW - (cols - 1) * 2) / cols));
+
+  boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cellPx}px)`;
+  boardEl.innerHTML = '';
+  for(let i = 0; i < total; i++){
+    const c = document.createElement('div');
+    c.className = 'cell';
+    c.style.width = c.style.height = cellPx + 'px';
+    c.addEventListener('click', () => handleClick(i, c, total, cols, rows));
+    boardEl.appendChild(c);
+  }
+
+  roundDisp.textContent = `${r+1}/9`;
+  gridDisp.textContent  = `${cols}×${rows}`;
+  renderProgress();
+  active = true;
+
+  msgBar.style.color = 'var(--yellow)';
+  msgBar.textContent = r === 0 ? 'CLICK ANY CELL TO BEGIN' : `▸ ROUND ${r+1} — CHOOSE YOUR CELL`;
+}
+
+// ── HANDLE CLICK ─────────────────────────────────
+function handleClick(idx, cellEl, total, cols, rows){
+  if(!active) return;
+  active = false;
+
+  const isHit = mines.has(idx);
+
+  // Reveal ALL mines after the click (fairness proof)
+  // Small delay so player sees their click first
+  setTimeout(() => revealAllMines(idx, isHit), isHit ? 150 : 300);
+
+  // Update seed status
+  revealStat.className = isHit ? 'done-boom' : 'done-safe';
+  revealStat.textContent = isHit ? '💥 BOOM' : '✓ SAFE';
+
+  if(isHit){
+    // ── MINE HIT ──
+    cellEl.className = 'cell boom';
+    cellEl.innerHTML = '<div class="cell-icon">💥</div>';
+    msgBar.style.color = 'var(--red)';
+    msgBar.textContent = `⚠ MINE HIT — ${mines.size} MINES WERE HIDDEN ⚠`;
+
+    setTimeout(() => {
+      const roundReached = round + 1; // rounds are 1-indexed for display
+      checkLeaderboard(roundReached);
+    }, 1100);
+
+  } else {
+    // ── SAFE ──
+    cellEl.className = 'cell safe';
+    cellEl.innerHTML = '<div class="cell-icon" style="color:var(--green);font-size:55%">✓</div>';
+    round++;
+    renderProgress();
+
+    if(round === 9){
+      // ── FULL WIN ──
+      msgBar.style.color = 'var(--yellow)';
+      msgBar.textContent = '★ ALL 9 ROUNDS CLEARED — MATRIX CRACKED ★';
+      setTimeout(() => checkLeaderboard(9), 1100);
+    } else {
+      msgBar.style.color = 'var(--green)';
+      msgBar.textContent = `✓ SAFE — ADVANCING TO ROUND ${round+1}…`;
+      setTimeout(() => buildBoard(round), 1100);
+    }
+  }
+}
+
+// ── REVEAL ALL MINES ─────────────────────────────
+function revealAllMines(clickedIdx, wasHit){
+  mines.forEach(mIdx => {
+    if(mIdx === clickedIdx && wasHit) return; // already shown as explosion
+    const c = boardEl.children[mIdx];
+    if(c && !c.classList.contains('safe')){
+      c.className = 'cell show-mine';
+      c.innerHTML = '<div class="cell-icon">💣</div>';
+    }
+  });
+}
+
+// ── START ─────────────────────────────────────────
+function startGame(){
+  round = 0;
+  buildBoard(0);
+}
+
+// ── LEADERBOARD CHECK ────────────────────────────
+// Top 5 by bestRound (ties: newest entry wins / bumps oldest).
+// DB always holds exactly 5 entries max.
+async function checkLeaderboard(roundReached){
+  if(demoMode){
+    // demo: just auto-restart, no popup
+    setTimeout(() => startGame(), 1200);
+    return;
+  }
+
+  const board = await loadBoard(); // array of up to 5 entries sorted desc
+  const qualifies = board.length < 5 || roundReached >= board[4].bestRound;
+
+  if(qualifies){
+    const title = roundReached === 9 ? '★ MATRIX CRACKED ★' : `🏆 TOP 5 — ROUND ${roundReached}`;
+    const body  = roundReached === 9
+      ? 'All 9 rounds cleared!<br>You cracked the top 5 — enter your name:'
+      : `Round ${roundReached} reached!<br>You cracked the top 5 — enter your name:`;
+
+    showModal(title, body, roundReached === 9 ? 'yellow' : 'green',
+      [
+        {
+          label: '✓ SUBMIT', cls: roundReached===9 ? 'gold' : '',
+          fn: async () => {
+            const raw = (nameInput.value||'').trim().toUpperCase().replace(/[^A-Z0-9 _\-]/g,'').substring(0,14);
+            const name = raw || 'ANON';
+            await saveScore(name, roundReached, board);
+            hideModal();
+            startGame();
+          }
+        },
+        { label:'SKIP', fn:()=>{ hideModal(); startGame(); } }
+      ],
+      roundReached === 9 ? 'gold' : ''
+    );
+    nameInput.style.display = 'block';
+    setTimeout(() => nameInput.focus(), 120);
+    nameInput.onkeydown = e => { if(e.key==='Enter') modalBtns.children[0].click(); };
+  } else {
+    // Not in top 5 — silent auto-restart
+    setTimeout(() => startGame(), 1200);
+  }
+}
+
+// ── FIREBASE DB ───────────────────────────────────
+// Schema: leaderboard = { key: { name, bestRound, ts } }
+// Always trims to 5 entries: sorted by bestRound desc, ties broken by newest ts.
+
+async function loadBoard(){
+  if(!db) return [];
+  try{
+    const snap = await get(ref(db,'leaderboard'));
+    if(!snap.exists()) return [];
+    const arr = Object.entries(snap.val() || {}).map(([k,v]) => ({...v, _key:k}));
+    arr.sort((a,b) => b.bestRound !== a.bestRound ? b.bestRound - a.bestRound : b.ts - a.ts);
+    return arr;
+  }catch(e){ return []; }
+}
+
+async function saveScore(name, roundReached, currentBoard){
+  if(!db) return;
+  try{
+    const ts = Date.now();
+    const key = ts.toString(36); // unique timestamp key per submission
+    // Add new entry
+    await set(ref(db,`leaderboard/${key}`), { name, bestRound: roundReached, ts });
+    // Re-fetch and trim to top 5, deleting any excess
+    const all = await loadBoard();
+    // all is sorted desc; keep first 5, delete the rest
+    if(all.length > 5){
+      const toDelete = all.slice(5);
+      for(const entry of toDelete){
+        await set(ref(db,`leaderboard/${entry._key}`), null);
+      }
+    }
+  }catch(e){ console.warn('Save failed',e); }
+}
+
+function renderLB(data){
+  if(!data || !Object.keys(data).length){
+    lbList.innerHTML='<div class="lb-empty">No survivors yet — be the first.</div>'; return;
+  }
+  const arr = Object.entries(data)
+    .map(([k,v]) => ({...v, _key:k}))
+    .sort((a,b) => b.bestRound !== a.bestRound ? b.bestRound - a.bestRound : b.ts - a.ts)
+    .slice(0,5);
+  const cls=['r1','r2','r3','r4','r5'], medals=['#1','#2','#3','#4','#5'];
+  lbList.innerHTML='';
+  arr.forEach((e,i)=>{
+    const isMax = e.bestRound === 9;
+    const row = document.createElement('div');
+    row.className = `lb-row ${cls[i]}`;
+    row.innerHTML=`
+      <span class="lb-rank">${medals[i]}</span>
+      <span class="lb-name">${e.name}</span>
+      <span class="lb-score">RND ${e.bestRound}/9${isMax?' ★':''}</span>`;
+    lbList.appendChild(row);
+  });
+}
+
+// ── FIREBASE INIT ────────────────────────────────
+try{
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  db = getDatabase(app);
+
+  showModal('INITIALIZING','Establishing anonymous connection...','green',[]);
+
+  signInAnonymously(auth).catch(err=>{
+    console.warn('Auth failed, demo mode:', err.message);
+    goDemoMode();
+  });
+
+  onAuthStateChanged(auth, user=>{
+    if(user){
+      hideModal(); startGame();
+      onValue(ref(db,'leaderboard'), snap => renderLB(snap.val()));
+    }
+  });
+}catch(err){
+  console.warn('Firebase unavailable, demo mode:', err.message);
+  goDemoMode();
+}
+
+function goDemoMode(){
+  demoMode = true;
+  lbList.innerHTML='<div class="lb-empty">Paste Firebase config to enable leaderboard.</div>';
+  hideModal(); startGame();
+}
+</script>
+</body>
+</html>
