@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>MINEFIELD // MATRIX</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   :root {
@@ -21,7 +19,7 @@
 
   body {
     background: var(--bg);
-    font-family: 'Share Tech Mono', monospace;
+    font-family: 'Courier New', 'Consolas', 'Lucida Console', monospace;
     color: var(--green);
     min-height: 100vh;
     display: flex;
@@ -47,11 +45,12 @@
 
   /* HEADER */
   #title {
-    font-family: 'Orbitron', monospace;
+    font-family: 'Courier New', 'Lucida Console', 'Consolas', monospace;
     font-size: clamp(13px, 4vw, 22px);
     color: var(--green);
     text-shadow: 0 0 10px var(--green), 0 0 30px var(--green-dim);
-    letter-spacing: 4px; text-align: center;
+    letter-spacing: 6px; text-align: center;
+    font-weight: 900;
     animation: flicker 5s infinite;
   }
   #subtitle { font-size: 10px; color: var(--green-dim); margin-top: 5px; letter-spacing: 3px; text-align: center; }
@@ -67,7 +66,7 @@
     padding: 12px 14px; width: 100%;
   }
   .panel-title {
-    font-family: 'Orbitron', monospace;
+    font-family: 'Courier New', 'Lucida Console', 'Consolas', monospace;
     font-size: 7px; color: var(--green-dim);
     letter-spacing: 2px; margin-bottom: 8px;
     border-bottom: 1px solid var(--green-dark); padding-bottom: 5px;
@@ -77,7 +76,7 @@
   #status-bar { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
   .stat-label { font-size: 8px; color: var(--green-dim); letter-spacing: 1px; margin-bottom: 3px; }
   .stat-value {
-    font-family: 'Orbitron', monospace;
+    font-family: 'Courier New', 'Lucida Console', 'Consolas', monospace;
     font-size: clamp(8px, 2.2vw, 12px);
     color: var(--green); text-shadow: 0 0 6px var(--green);
   }
@@ -99,21 +98,21 @@
     font-size: 10px; color: var(--green-dim); gap: 6px; flex-wrap: wrap;
   }
   #mine-count-display {
-    font-family: 'Orbitron', monospace;
+    font-family: 'Courier New', 'Lucida Console', 'Consolas', monospace;
     font-size: 10px; color: var(--red);
     text-shadow: 0 0 8px rgba(255,34,68,0.5);
   }
   #safe-count-display {
-    font-family: 'Orbitron', monospace;
+    font-family: 'Courier New', 'Lucida Console', 'Consolas', monospace;
     font-size: 10px; color: var(--green);
   }
 
   /* SEED / FAIRNESS */
   #seed-bar { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start; }
-  #seed-val { font-family: 'Orbitron', monospace; font-size: 7px; color: var(--green); word-break: break-all; line-height: 1.6; }
+  #seed-val { font-family: 'Courier New', 'Lucida Console', 'Consolas', monospace; font-size: 7px; color: var(--green); word-break: break-all; line-height: 1.6; }
   .seed-hint { font-size: 8px; color: var(--green-dark); margin-top: 6px; line-height: 1.7; }
   #reveal-status {
-    font-family: 'Orbitron', monospace; font-size: 7px;
+    font-family: 'Courier New', 'Lucida Console', 'Consolas', monospace; font-size: 7px;
     padding: 4px 8px; border: 1px solid var(--green-dark);
     color: var(--green-dim); text-align: center; white-space: nowrap;
   }
@@ -123,7 +122,7 @@
 
   /* MESSAGE */
   #message-bar {
-    font-family: 'Orbitron', monospace;
+    font-family: 'Courier New', 'Lucida Console', 'Consolas', monospace;
     font-size: clamp(7px, 2vw, 10px);
     color: var(--yellow); text-shadow: 0 0 8px var(--yellow);
     text-align: center; min-height: 22px;
