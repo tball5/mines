@@ -623,7 +623,7 @@ async function checkLeaderboard(roundReached){
     const title = roundReached === 9 ? '★ MATRIX CRACKED ★' : `🏆 TOP 20 — ROUND ${roundReached}`;
     const body  = roundReached === 9
       ? 'All 9 rounds cleared!<br>You cracked the top 20 — enter your name:'
-      : `Round ${roundReached} reached!<br>You cracked the top 5 — enter your name:`;
+      : `Round ${roundReached} reached!<br>You cracked the top 20 — enter your name:`;
 
     showModal(title, body, roundReached === 9 ? 'yellow' : 'green',
       [
